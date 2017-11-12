@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import org.jasypt.properties.EncryptableProperties
 import java.util.Set;
 import java.util.concurrent.Future;
 
@@ -856,18 +857,24 @@ public class Context {
 		if (properties == null) {
 			properties = new Properties();
 		}
-
+		BasicTextEncryptor textEncryptor = new BasicTextEncryptor();
+		textEncryptor.setPassword(password);
+		enc_user = textEncryptor.encrypt(username);
+		enc_pass = textEncryptor.encrypt(password);
+		
 		properties.put("connection.url", url);
-		properties.put("connection.username", username);
-		properties.put("connection.password", password);
-		setRuntimeProperties(properties);
+		properties.put("connection.username", "ENC(" + enc_user + ")");
+		properties.put("connection.password", "ENC(" + enc_pass + ")");
+		
+		EncryptableProperties enc_properties = new EncryptableProperties(properties, textEncryptor);
+		setRuntimeProperties(enc_properties);
 
 		openSession(); // so that the startup method can use proxyPrivileges
 
-		startup(properties);
+		startup(enc_properties);
 
 		// start the scheduled tasks
-		SchedulerUtil.startup(properties);
+		SchedulerUtil.startup(enc_properties);
 
 		closeSession();
 	}
